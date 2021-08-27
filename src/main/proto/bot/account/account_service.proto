@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package bot.account;
+
+import "google/protobuf/empty.proto";
+import "google/api/annotations.proto";
+import "akkaserverless/annotations.proto";
+
+option java_outer_classname = "AccountManagementAPI";
+
+// COMMANDS
+
+message RegisterAccountCommand {
+  string account_id = 1 [(akkaserverless.field).entity_key = true];
+  string email = 2;
+}
+
+message DisableAccountCommand {
+  string account_id = 1 [(akkaserverless.field).entity_key = true];
+}
+
+
+// SERVICE
+
+/**
+* The service definition.
+* Note: GRPC is the default mechanism, but the google.api.http option gives us http capability for free.
+**/
+service AccountService {
+  rpc RegisterAccount(RegisterAccountCommand) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/account/create"
+      body: "*"
+    };
+  }
+
+  rpc DisableAccount(DisableAccountCommand) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/account/disable"
+      body: "*"
+    };
+  }
+}

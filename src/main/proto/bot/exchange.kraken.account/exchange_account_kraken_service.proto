@@ -1,0 +1,68 @@
+syntax = "proto3";
+
+package bot.exchange.kraken.account;
+
+import "google/protobuf/empty.proto";
+import "google/api/annotations.proto";
+import "akkaserverless/annotations.proto";
+
+option java_outer_classname = "ExchangeAccountKrakenAPI";
+
+// COMMANDS
+message AssociateAccountCommand {
+    string exchange_id = 1 [(akkaserverless.field).entity_key = true];
+    string account_id = 2 [(akkaserverless.field).entity_key = true];
+}
+
+message DissociateAccountCommand {
+    string account_id = 1 [(akkaserverless.field).entity_key = true];
+}
+
+message UpdateAPIKeysCommand {
+    string api_key = 1 [(akkaserverless.field).entity_key = true];
+    string api_secret = 2;
+}
+
+
+message TestAPIKeysCommand {
+    string exchange_id = 1 [(akkaserverless.field).entity_key = true];
+    string account_id = 2 [(akkaserverless.field).entity_key = true];
+}
+
+
+// SERVICE
+
+/**
+* The service definition.
+* Note: GRPC is the default mechanism, but the google.api.http option gives us http capability for free.
+**/
+service KrakenAccountService {
+
+    rpc AssociateAccount(AssociateAccountCommand) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/exchange/account/kraken/associate"
+            body: "*"
+        };
+    }
+
+    rpc DissociateAccount(DissociateAccountCommand) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/exchange/account/kraken/dissociate"
+            body: "*"
+        };
+    }
+
+    rpc ChangeAPIKeys(UpdateAPIKeysCommand) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/exchange/account/kraken/update-api-keys"
+            body: "*"
+        };
+    }
+
+    rpc TestAPIKeys(TestAPIKeysCommand) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/exchange/account/kraken/test-api-keys"
+            body: "*"
+        };
+    }
+}
