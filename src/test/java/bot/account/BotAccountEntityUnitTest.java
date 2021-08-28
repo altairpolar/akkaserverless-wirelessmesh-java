@@ -1,17 +1,14 @@
 package bot.account;
 
-import bot.account.AccountEntity;
 import com.akkaserverless.javasdk.eventsourcedentity.CommandContext;
 import org.junit.Test;
 import org.mockito.*;
-import bot.account.AccountManagementDomain.*;
-import bot.account.AccountManagementAPI.*;
+import bot.account.BotAccountDomain.*;
+import bot.account.BotAccountAPI.*;
 
 import java.util.UUID;
 
-pendientes los tests de kraken.
-
-public class AccountEntityUnitTest {
+public class BotAccountEntityUnitTest {
 
     @Test
     public void registerAccount_happyCase() {
@@ -21,16 +18,15 @@ public class AccountEntityUnitTest {
         String email = "me@you.com";
 
         CommandContext context = Mockito.mock(CommandContext.class);
-        AccountEntity account = new AccountEntity(accountId);
-        AccountRegistered accountAdded = AccountRegistered.newBuilder()
-                .setId(AccountId.newBuilder()
-                        .setId(accountId))
+        BotAccountEntity account = new BotAccountEntity(accountId);
+        BotAccountRegistered accountAdded = BotAccountRegistered.newBuilder()
+                .setId(accountId)
                 .setEmail(email)
                 .build();
 
         // when
         account.registerAccount(RegisterAccountCommand.newBuilder()
-                .setAccountId(accountId)
+                .setId(accountId)
                 .setEmail(email)
                 .build(), context);
 
@@ -42,6 +38,7 @@ public class AccountEntityUnitTest {
 
     }
 
+    @SuppressWarnings("ThrowableNotThrown")
     @Test
     public void registerAccount_errorSameIdTwice() {
 
@@ -51,31 +48,31 @@ public class AccountEntityUnitTest {
         String accountId = UUID.randomUUID().toString();
         String email = "me@you.com";
 
-        AccountEntity account = new AccountEntity(accountId);
-        AccountRegistered accountAdded = AccountRegistered.newBuilder()
-                .setId(AccountId.newBuilder()
-                        .setId(accountId))
+        BotAccountEntity account = new BotAccountEntity(accountId);
+        BotAccountRegistered botAccountRegistered = BotAccountRegistered.newBuilder()
+                .setId(accountId)
                 .setEmail(email)
                 .build();
 
         account.registerAccount(RegisterAccountCommand.newBuilder()
-                .setAccountId(accountId)
+                .setId(accountId)
                 .setEmail(email)
                 .build(), context);
 
         // Simulate event callback to drive state change.
-        account.accountRegistered(accountAdded);
+        account.accountRegistered(botAccountRegistered);
 
         // when
         account.registerAccount(RegisterAccountCommand.newBuilder()
-                .setAccountId(accountId)
+                .setId(accountId)
                 .setEmail(email)
                 .build(), context);
 
         // then
-        Mockito.verify(context).fail(AccountEntity.ACCOUNT_IS_ALREADY_REGISTERED);
+        Mockito.verify(context).fail(BotAccountEntity.ACCOUNT_IS_ALREADY_REGISTERED);
     }
 
+    @SuppressWarnings("ThrowableNotThrown")
     @Test
     public void registerAccount_invalidEmail() {
 
@@ -85,16 +82,16 @@ public class AccountEntityUnitTest {
         String accountId = UUID.randomUUID().toString();
         String email = UUID.randomUUID().toString();
 
-        AccountEntity account = new AccountEntity(accountId);
+        BotAccountEntity account = new BotAccountEntity(accountId);
 
         // when
         account.registerAccount(RegisterAccountCommand.newBuilder()
-                .setAccountId(accountId)
+                .setId(accountId)
                 .setEmail(email)
                 .build(), context);
 
         // then
-        Mockito.verify(context).fail(AccountEntity.ACCOUNT_EMAIL_IS_NOT_A_VALID_EMAIL);
+        Mockito.verify(context).fail(BotAccountEntity.ACCOUNT_EMAIL_IS_NOT_A_VALID_EMAIL);
 
     }
 

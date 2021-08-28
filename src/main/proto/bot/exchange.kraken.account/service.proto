@@ -6,16 +6,16 @@ import "google/protobuf/empty.proto";
 import "google/api/annotations.proto";
 import "akkaserverless/annotations.proto";
 
-option java_outer_classname = "ExchangeAccountKrakenAPI";
+option java_outer_classname = "KrakenAccountAPI";
+
 
 // COMMANDS
 message AssociateAccountCommand {
-    string exchange_id = 1 [(akkaserverless.field).entity_key = true];
-    string account_id = 2 [(akkaserverless.field).entity_key = true];
+    string bot_account_id = 1 [(akkaserverless.field).entity_key = true];
 }
 
 message DissociateAccountCommand {
-    string account_id = 1 [(akkaserverless.field).entity_key = true];
+    string bot_account_id = 1 [(akkaserverless.field).entity_key = true];
 }
 
 message UpdateAPIKeysCommand {
@@ -23,10 +23,8 @@ message UpdateAPIKeysCommand {
     string api_secret = 2;
 }
 
-
 message TestAPIKeysCommand {
-    string exchange_id = 1 [(akkaserverless.field).entity_key = true];
-    string account_id = 2 [(akkaserverless.field).entity_key = true];
+    string bot_account_id = 1 [(akkaserverless.field).entity_key = true];
 }
 
 
@@ -40,28 +38,28 @@ service KrakenAccountService {
 
     rpc AssociateAccount(AssociateAccountCommand) returns (google.protobuf.Empty) {
         option (google.api.http) = {
-            post: "/exchange/account/kraken/associate"
+            post: "/exchange/kraken/account/associate"
             body: "*"
         };
     }
 
     rpc DissociateAccount(DissociateAccountCommand) returns (google.protobuf.Empty) {
         option (google.api.http) = {
-            post: "/exchange/account/kraken/dissociate"
+            post: "/exchange/kraken/account/dissociate"
             body: "*"
         };
     }
 
     rpc ChangeAPIKeys(UpdateAPIKeysCommand) returns (google.protobuf.Empty) {
         option (google.api.http) = {
-            post: "/exchange/account/kraken/update-api-keys"
+            post: "/exchange/kraken/account/update-api-keys"
             body: "*"
         };
     }
 
     rpc TestAPIKeys(TestAPIKeysCommand) returns (google.protobuf.Empty) {
         option (google.api.http) = {
-            post: "/exchange/account/kraken/test-api-keys"
+            post: "/exchange/kraken/account/test-api-keys"
             body: "*"
         };
     }

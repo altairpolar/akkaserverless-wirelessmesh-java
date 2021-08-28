@@ -2,29 +2,26 @@ syntax = "proto3";
 
 package bot.exchange.kraken.account;
 
+option java_outer_classname = "KrakenAccountDomain";
+
 // VALUE TYPES
 
 // EVENTS
 message KrakenAccountAssociated {
-  string exchangeId = 1;
-  string accountId = 2;
+  string botAccountId = 1;
 }
 
 message KrakenAccountDissociated {
-  string exchangeId = 1;
-  string accountId = 2;
+  string botAccountId = 1;
 }
 
 message KrakenAPIKeysUpdated {
-  string exchangeId = 1;
-  string accountId = 2;
+  string botAccountId = 1;
 }
 
 // STATE
 message KrakenAccountState {
-
-  string accountId = 1;
+  string botAccountId = 1;
   string apiKey = 2;
   string apiSecret = 3;
-
 }

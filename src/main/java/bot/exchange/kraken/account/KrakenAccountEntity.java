@@ -1,7 +1,7 @@
 package bot.exchange.kraken.account;
 
-import  bot.exchange.kraken.account.ExchangeAccountKrakenDomain.*;
-import  bot.exchange.kraken.account.ExchangeAccountKrakenAPI.*;
+import  bot.exchange.kraken.account.KrakenAccountDomain.*;
+import  bot.exchange.kraken.account.KrakenAccountAPI.*;
 import com.akkaserverless.javasdk.EntityId;
 import com.akkaserverless.javasdk.eventsourcedentity.CommandContext;
 import com.akkaserverless.javasdk.eventsourcedentity.CommandHandler;
@@ -21,25 +21,24 @@ import com.google.protobuf.Empty;
  * of security, analytics and simulation.
  */
 @EventSourcedEntity(entityType = "exchange-kraken-account")
-public class KrakenExchangeAccountEntity {
+public class KrakenAccountEntity {
 
     public static final String ACCOUNT_IS_ALREADY_REGISTERED = "Account is already registered on this Exchange";
-
-    @SuppressWarnings({"FieldCanBeLocal", "unused"})
-    private final String exchangeId;
+    public static final String ACCOUNT_IS_ALREADY_DISSOCIATED = "Account is already dissociated";
 
     @SuppressWarnings({"FieldCanBeLocal", "unused"})
     private final String accountId;
 
     private boolean isAdded = false;
 
+    private boolean isDissociated = false;
+
     /**
      * Constructor.
      *
      * @param accountId The entity id will be the accountId, the unique key for this entity.
      */
-    public KrakenExchangeAccountEntity(@EntityId String exchangeId, @EntityId String accountId) {
-        this.exchangeId = exchangeId;
+    public KrakenAccountEntity(@EntityId String accountId) {
         this.accountId = accountId;
     }
 
@@ -53,14 +52,30 @@ public class KrakenExchangeAccountEntity {
      * @param ctx                    the application context
      * @return Empty (unused)
      */
+    @SuppressWarnings("ThrowableNotThrown")
     @CommandHandler
-    public Empty associateAccount(ExchangeAccountKrakenAPI.AssociateAccountCommand associateAccountCommand, CommandContext ctx) {
+    public Empty associateAccount(AssociateAccountCommand associateAccountCommand, CommandContext ctx) {
         if (isAdded) {
             ctx.fail(ACCOUNT_IS_ALREADY_REGISTERED);
         } else {
             KrakenAccountAssociated event = KrakenAccountAssociated.newBuilder()
-                    .setExchangeId(associateAccountCommand.getExchangeId())
-                    .setAccountId(associateAccountCommand.getAccountId())
+                    .setBotAccountId(associateAccountCommand.getBotAccountId())
+                    .build();
+
+            ctx.emit(event);
+        }
+
+        return Empty.getDefaultInstance();
+    }
+
+    @SuppressWarnings("ThrowableNotThrown")
+    @CommandHandler
+    public Empty dissociateAccount(DissociateAccountCommand dissociateAccountCommand, CommandContext ctx) {
+        if (isDissociated) {
+            ctx.fail(ACCOUNT_IS_ALREADY_DISSOCIATED);
+        } else {
+            KrakenAccountDissociated event = KrakenAccountDissociated.newBuilder()
+                    .setBotAccountId(dissociateAccountCommand.getBotAccountId())
                     .build();
 
             ctx.emit(event);
@@ -72,14 +87,25 @@ public class KrakenExchangeAccountEntity {
     // EVENTS
 
     /**
-     * This is the event handler for registering an Account.
+     * This is the event handler for associating a Kraken Account with a Bot Account.
      * It is here we update current state due to successful storage to the Event Log.
      *
-     * @param accountRegistered the event previously emitted in the command handler, now safely stored.
+     * @param krakenAccountAssociated the event previously emitted in the command handler, now safely stored.
      */
     @EventHandler
-    public void accountRegistered(KrakenAccountAssociated accountRegistered) {
+    public void accountAssociated(@SuppressWarnings("unused") KrakenAccountAssociated krakenAccountAssociated) {
         this.isAdded = true;
+    }
+
+    /**
+     * This is the event handler for dissociating a Kraken Account with a Bot Account.
+     * It is here we update current state due to successful storage to the Event Log.
+     *
+     * @param krakenAccountDissociated the event previously emitted in the command handler, now safely stored.
+     */
+    @EventHandler
+    public void accountDissociated(@SuppressWarnings("unused") KrakenAccountDissociated krakenAccountDissociated) {
+        this.isDissociated = true;
     }
 
 }

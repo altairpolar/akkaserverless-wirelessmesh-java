@@ -1,6 +1,8 @@
 syntax = "proto3";
 
-package common.domain;
+package bot.common;
+
+option java_outer_classname = "BigDecimalDomain";
 
 /**
 * Implements a data type for handling Big Decimal types, as implementation proposal seems frozen by Google.

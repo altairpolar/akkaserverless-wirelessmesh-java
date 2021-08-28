@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package bot.account;
+
+option java_outer_classname = "BotAccountDomain";
+
+// EVENTS
+message BotAccountRegistered {
+  string id = 1;
+  string email = 3;
+}
+
+message BotAccountDeactivated {
+  string id = 1;
+}
+
+message BotAccountState {
+  string id = 1;
+  string email = 2;
+  bool isAdded = 3;
+  bool isDisabled = 4;
+}

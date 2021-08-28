@@ -1,11 +1,11 @@
 package bot;
 
-import bot.account.AccountManagementDomain;
-import bot.account.AccountManagementAPI;
-import bot.account.AccountEntity;
-import bot.exchange.kraken.account.ExchangeAccountKrakenAPI;
-import bot.exchange.kraken.account.ExchangeAccountKrakenDomain;
-import bot.exchange.kraken.account.KrakenExchangeAccountEntity;
+import bot.account.BotAccountDomain;
+import bot.account.BotAccountAPI;
+import bot.account.BotAccountEntity;
+import bot.exchange.kraken.account.KrakenAccountDomain;
+import bot.exchange.kraken.account.KrakenAccountAPI;
+import bot.exchange.kraken.account.KrakenAccountEntity;
 import com.akkaserverless.javasdk.AkkaServerless;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,13 +20,13 @@ public class BotMain {
     public static AkkaServerless botAkkaServerless =
             new AkkaServerless()
                     .registerEventSourcedEntity(
-                            AccountEntity.class,
-                            AccountManagementAPI.getDescriptor().findServiceByName("AccountService"),
-                            AccountManagementDomain.getDescriptor())
+                            BotAccountEntity.class,
+                            BotAccountAPI.getDescriptor().findServiceByName("BotAccountService"),
+                            BotAccountDomain.getDescriptor())
                     .registerEventSourcedEntity(
-                            KrakenExchangeAccountEntity.class,
-                            ExchangeAccountKrakenAPI.getDescriptor().findServiceByName("KrakenAccountService"),
-                            ExchangeAccountKrakenDomain.getDescriptor()
+                            KrakenAccountEntity.class,
+                            KrakenAccountAPI.getDescriptor().findServiceByName("KrakenAccountService"),
+                            KrakenAccountDomain.getDescriptor()
                     );
 
 /*                    .registerView(
