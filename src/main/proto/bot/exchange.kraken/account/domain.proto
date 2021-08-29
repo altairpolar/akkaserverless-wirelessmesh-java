@@ -1,0 +1,71 @@
+syntax = "proto3";
+
+package bot.exchange.kraken.account;
+
+option java_outer_classname = "KrakenAccountDomain";
+
+// VALUE TYPES
+
+// EVENTS
+message KrakenAccountAssociated {
+  string krakenAccountId = 1;
+  string botAccountId = 2;
+}
+
+message KrakenAccountDissociated {
+  string krakenAccountId = 1;
+}
+
+message KrakenAPIKeysAssigned {
+  string krakenAccountId = 1;
+  string apiKey = 2;
+  string apiSecret = 3;
+}
+
+message KrakenBalanceUpdated {
+  // Balance Summary.
+  string costBasis = 10;
+  string equity = 11;
+  string equivalentBalance = 12;
+  string marginAmount = 13;
+  string freeMargin = 14;
+  string marginLevel = 15;
+  string unrealizedNetProfitLoss = 16;
+  string tradeBalance = 17;
+  string floatingValuation = 18;
+
+  // Assets in Balance.
+  repeated KrakenBalanceUpdatedForAsset assets = 20;
+}
+
+message KrakenBalanceUpdatedForAsset {
+  string Asset = 1;
+  string amount = 2;
+}
+
+// STATE
+message KrakenAccountState {
+  string krakenAccountId = 1;
+  string botAccountId = 2;
+  string apiKey = 3;
+  string apiSecret = 4;
+
+  // Balance Summary.
+  string costBasis = 10;
+  string equity = 11;
+  string equivalentBalance = 12;
+  string marginAmount = 13;
+  string freeMargin = 14;
+  string marginLevel = 15;
+  string unrealizedNetProfitLoss = 16;
+  string tradeBalance = 17;
+  string floatingValuation = 18;
+
+  // Assets in Balance.
+  repeated KrakenAccountStateBalanceForAsset assets = 20;
+}
+
+message KrakenAccountStateBalanceForAsset {
+  string Asset = 1;
+  string amount = 2;
+}

@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package bot.common;
 
-option java_outer_classname = "BigDecimalDomain";
+option java_outer_classname = "DecimalDomain";
 
 /**
 * Implements a data type for handling Big Decimal types, as implementation proposal seems frozen by Google.
@@ -10,7 +10,7 @@ option java_outer_classname = "BigDecimalDomain";
 * - https://github.com/protocolbuffers/protobuf/issues/4406
 * - https://stackoverflow.com/questions/1051732/what-is-the-best-approach-for-serializing-bigdecimal-biginteger-to-protocolbuffer/1052049#1052049
 */
-message BigDecimal {
+message Decimal {
   uint32 scale = 1;
   uint32 precision = 2;
   bytes value = 3;

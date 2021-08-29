@@ -31,8 +31,30 @@ message TestAPIKeysCommand {
 }
 
 message TestAPIKeysResponse {
-    bool success = 1 [(akkaserverless.field).entity_key = true];
+    bool success = 1;
     string error_message = 2;
+}
+
+message UpdateBalanceCommand {
+    string kraken_account_id = 1 [(akkaserverless.field).entity_key = true];
+}
+
+message UpdateBalanceResponse {
+    repeated UpdateBalanceResponseForAsset assets = 1;
+    string costBasis = 2;
+    string equity = 3;
+    string equivalentBalance = 4;
+    string marginAmount = 5;
+    string freeMargin = 6;
+    string marginLevel = 7;
+    string unrealizedNetProfitLoss = 8;
+    string tradeBalance = 9;
+    string floatingValuation = 10;
+}
+
+message UpdateBalanceResponseForAsset {
+    string Asset = 1;
+    string amount = 2;
 }
 
 
@@ -68,6 +90,13 @@ service KrakenAccountService {
     rpc TestAPIKeys(TestAPIKeysCommand) returns (TestAPIKeysResponse) {
         option (google.api.http) = {
             post: "/exchange/kraken/account/test-api-keys"
+            body: "*"
+        };
+    }
+
+    rpc UpdateBalance(UpdateBalanceCommand) returns (UpdateBalanceResponse) {
+        option (google.api.http) = {
+            post: "/exchange/kraken/balance/update"
             body: "*"
         };
     }
