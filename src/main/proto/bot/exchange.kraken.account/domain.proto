@@ -8,20 +8,24 @@ option java_outer_classname = "KrakenAccountDomain";
 
 // EVENTS
 message KrakenAccountAssociated {
-  string botAccountId = 1;
+  string krakenAccountId = 1;
+  string botAccountId = 2;
 }
 
 message KrakenAccountDissociated {
-  string botAccountId = 1;
+  string krakenAccountId = 1;
 }
 
-message KrakenAPIKeysUpdated {
-  string botAccountId = 1;
+message KrakenAPIKeysAssigned {
+  string krakenAccountId = 1;
+  string apiKey = 2;
+  string apiSecret = 3;
 }
 
 // STATE
 message KrakenAccountState {
-  string botAccountId = 1;
-  string apiKey = 2;
-  string apiSecret = 3;
+  string krakenAccountId = 1;
+  string botAccountId = 2;
+  string apiKey = 3;
+  string apiSecret = 4;
 }

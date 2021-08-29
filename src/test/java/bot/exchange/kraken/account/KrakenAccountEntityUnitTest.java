@@ -5,37 +5,43 @@ import bot.account.BotAccountAPI.RegisterAccountCommand;
 import bot.account.BotAccountDomain.BotAccountRegistered;
 import bot.exchange.kraken.account.KrakenAccountDomain.*;
 import com.akkaserverless.javasdk.eventsourcedentity.CommandContext;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.mockito.Mockito;
-
 import java.util.UUID;
 
 public class KrakenAccountEntityUnitTest {
 
+    @Rule
+    public ExpectedException exceptionRule = ExpectedException.none();
+
     @Test
-    public void associateAccount_happyCase() {
+    public void associateAccount() {
 
         // given
         CommandContext context = Mockito.mock(CommandContext.class);
 
         // A Bot Account.
-        String accountId = UUID.randomUUID().toString();
+        String botAccountId = UUID.randomUUID().toString();
         String email = "me@you.com";
 
         @SuppressWarnings("unused")
-        BotAccountEntity botAccountEntity = registerTestAccount(accountId, email, context);
+        BotAccountEntity botAccountEntity = registerTestAccount(botAccountId, email, context);
 
         // A Kraken Account.
         String krakenAccountId = UUID.randomUUID().toString();
         KrakenAccountEntity krakenAccountEntity = new KrakenAccountEntity(krakenAccountId);
 
         KrakenAccountAssociated krakenAccountAssociated = KrakenAccountAssociated.newBuilder()
-                .setBotAccountId(accountId)
+                .setKrakenAccountId(krakenAccountId)
+                .setBotAccountId(botAccountId)
                 .build();
 
         // when
         krakenAccountEntity.associateAccount(KrakenAccountAPI.AssociateAccountCommand.newBuilder()
-                .setBotAccountId(accountId)
+                .setKrakenAccountId(krakenAccountId)
+                .setBotAccountId(botAccountId)
                 .build(), context);
 
         // then
@@ -84,11 +90,13 @@ public class KrakenAccountEntityUnitTest {
         KrakenAccountEntity krakenAccountEntity = new KrakenAccountEntity(krakenAccountId);
 
         KrakenAccountAssociated krakenAccountAssociated = KrakenAccountAssociated.newBuilder()
+                .setKrakenAccountId(krakenAccountId)
                 .setBotAccountId(botAccountId)
                 .build();
 
         // when
         krakenAccountEntity.associateAccount(KrakenAccountAPI.AssociateAccountCommand.newBuilder()
+                .setKrakenAccountId(krakenAccountId)
                 .setBotAccountId(botAccountId)
                 .build(), context);
 
@@ -102,7 +110,7 @@ public class KrakenAccountEntityUnitTest {
     }
 
     @Test
-    public void dissociateAccount_happyCase() {
+    public void dissociateAccount() {
 
         // given
 
@@ -116,12 +124,12 @@ public class KrakenAccountEntityUnitTest {
         KrakenAccountEntity krakenAccountEntity = new KrakenAccountEntity(krakenAccountId);
 
         KrakenAccountDissociated krakenAccountDissociated = KrakenAccountDissociated.newBuilder()
-                .setBotAccountId(botAccountId)
+                .setKrakenAccountId(krakenAccountId)
                 .build();
 
         // when
         krakenAccountEntity.dissociateAccount(KrakenAccountAPI.DissociateAccountCommand.newBuilder()
-                .setBotAccountId(botAccountId)
+                .setKrakenAccountId(krakenAccountId)
                 .build(), context);
 
         // then

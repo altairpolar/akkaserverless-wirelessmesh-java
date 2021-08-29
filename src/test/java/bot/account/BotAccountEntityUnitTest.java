@@ -11,7 +11,7 @@ import java.util.UUID;
 public class BotAccountEntityUnitTest {
 
     @Test
-    public void registerAccount_happyCase() {
+    public void registerAccount() {
 
         // given
         String accountId = UUID.randomUUID().toString();

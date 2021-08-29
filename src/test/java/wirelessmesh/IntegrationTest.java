@@ -19,7 +19,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class IntegrationTest {
-
+/*
     private static final AkkaServerless WIRELESS_MESH = WirelessMeshMain.wirelessMeshService;
 
     @ClassRule
@@ -168,4 +168,6 @@ public class IntegrationTest {
                 .setNightlightOn(false)
                 .build();
     }
+
+ */
 }

@@ -11,20 +11,28 @@ option java_outer_classname = "KrakenAccountAPI";
 
 // COMMANDS
 message AssociateAccountCommand {
-    string bot_account_id = 1 [(akkaserverless.field).entity_key = true];
+    string kraken_account_id = 1 [(akkaserverless.field).entity_key = true];
+    string bot_account_id = 2 [(akkaserverless.field).entity_key = true];
 }
 
 message DissociateAccountCommand {
-    string bot_account_id = 1 [(akkaserverless.field).entity_key = true];
+    string kraken_account_id = 1 [(akkaserverless.field).entity_key = true];
 }
 
-message UpdateAPIKeysCommand {
-    string api_key = 1 [(akkaserverless.field).entity_key = true];
-    string api_secret = 2;
+message AssignAPIKeysCommand {
+    string kraken_account_id = 1 [(akkaserverless.field).entity_key = true];
+    string api_key = 2;
+    string api_secret = 3;
 }
 
 message TestAPIKeysCommand {
-    string bot_account_id = 1 [(akkaserverless.field).entity_key = true];
+    string kraken_account_id = 1 [(akkaserverless.field).entity_key = true];
+    string api_key = 2;
+}
+
+message TestAPIKeysResponse {
+    bool success = 1 [(akkaserverless.field).entity_key = true];
+    string error_message = 2;
 }
 
 
@@ -50,14 +58,14 @@ service KrakenAccountService {
         };
     }
 
-    rpc ChangeAPIKeys(UpdateAPIKeysCommand) returns (google.protobuf.Empty) {
+    rpc AssignAPIKeys(AssignAPIKeysCommand) returns (google.protobuf.Empty) {
         option (google.api.http) = {
-            post: "/exchange/kraken/account/update-api-keys"
+            post: "/exchange/kraken/account/assign-keys"
             body: "*"
         };
     }
 
-    rpc TestAPIKeys(TestAPIKeysCommand) returns (google.protobuf.Empty) {
+    rpc TestAPIKeys(TestAPIKeysCommand) returns (TestAPIKeysResponse) {
         option (google.api.http) = {
             post: "/exchange/kraken/account/test-api-keys"
             body: "*"

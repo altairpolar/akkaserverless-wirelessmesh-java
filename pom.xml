@@ -232,6 +232,12 @@
             <name>repo-lightbend-com-akkaserverless</name>
             <url>https://repo.lightbend.com/lightbend/akkaserverless/</url>
         </repository>
+        <!-- OBB: Reactive Crypto Library. In Kotlin and does not implement Kraken HTTP Client.
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
+        -->
     </repositories>
 
     <pluginRepositories>
@@ -261,6 +267,25 @@
             <artifactId>logback-classic</artifactId>
             <version>1.2.3</version>
         </dependency>
+        <!-- OBB: Needed for REST API Marshalling -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.6</version>
+        </dependency>
+
+        <!-- OBB: Reactive Crypto Library. In Kotlin and does not implement Kraken HTTP Client.
+        <dependency>
+            <groupId>com.github.namjug-kim.reactive-crypto</groupId>
+            <artifactId>reactive-crypto-kraken</artifactId>
+            <version>LATEST</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.namjug-kim.reactive-crypto</groupId>
+            <artifactId>reactive-crypto-binance</artifactId>
+            <version>LATEST</version>
+        </dependency>
+        -->
         <dependency>
             <groupId>com.akkaserverless</groupId>
             <artifactId>akkaserverless-java-sdk-testkit</artifactId>
