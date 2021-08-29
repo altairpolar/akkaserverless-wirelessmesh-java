@@ -36,7 +36,7 @@ public enum KrakenApiMethod {
         this.isPrivate = isPrivate;
     }
 
-    String getUrl(int apiVersion) {
+    public String getUrl(int apiVersion) {
         return "/" + apiVersion + "/" + (isPrivate ? "private/" : "public/") + url;
     }
 }
