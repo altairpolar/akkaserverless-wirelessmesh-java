@@ -1,10 +1,23 @@
 package bot.exchange.kraken.account;
 
+import bot.BotAkkaServerless;
 import bot.BotMain;
 import bot.account.BotAccountAPI;
 import bot.account.BotAccountServiceClient;
+import bot.exchange.kraken.access.typed.HttpApiClient;
+import bot.exchange.kraken.access.typed.HttpApiClientFactory;
+import bot.exchange.kraken.access.typed.KrakenAPIClient;
+import bot.exchange.kraken.access.typed.KrakenApiException;
+import bot.exchange.kraken.access.typed.KrakenApiMethod;
+import bot.exchange.kraken.access.typed.result.AccountBalanceResult;
+import bot.exchange.kraken.access.typed.result.Result;
+import bot.exchange.kraken.access.typed.result.TradeBalanceResult;
+import bot.exchange.kraken.access.typed.utils.StreamUtils;
 import bot.exchange.kraken.account.KrakenAccountAPI.*;
 import com.akkaserverless.javasdk.testkit.junit.AkkaServerlessTestkitResource;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Ignore;
@@ -12,8 +25,13 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import java.io.IOException;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
+
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class KrakenAccountServiceIntegrationTest {
 
@@ -22,7 +40,7 @@ public class KrakenAccountServiceIntegrationTest {
 
     @ClassRule
     public static final AkkaServerlessTestkitResource testkit = new AkkaServerlessTestkitResource(
-            BotMain.botAkkaServerless);
+            BotAkkaServerless.botAkkaServerless);
 
     @Rule
     public ExpectedException exceptionRule = ExpectedException.none();
@@ -215,15 +233,25 @@ public class KrakenAccountServiceIntegrationTest {
 
     @Test
     @Ignore("Cannot invoke each test execution at risk of being banned. Would required a mocked version")
-    public void testAPIKeys() throws ExecutionException, InterruptedException {
+    public void testAPIKeys() throws ExecutionException, InterruptedException, IOException {
 
+        // mocks
+
+        mockAPIMethod(
+                ImmutableMap.of(KrakenApiMethod.ACCOUNT_BALANCE
+                        , new ObjectMapper().readValue(
+                                StreamUtils.getResourceAsString(this.getClass(), "json/account_balance.mock.json")
+                                , AccountBalanceResult.class)));
+
+        // given
         String botAccountId = UUID.randomUUID().toString();
         String krakenAccountId = UUID.randomUUID().toString();
         String email = "me@you.com";
         createAssociatedKrakenAccount(botAccountId, krakenAccountId, email);
 
-        String apiPublicKey = ""; // FIX-ME
-        String apiSecretKey = ""; // FIX-ME
+        String apiPublicKey = UUID.randomUUID().toString();
+        String apiSecretKey = UUID.randomUUID().toString();
+
         krakenAccountServiceClient.assignAPIKeys(AssignAPIKeysCommand.newBuilder()
                 .setKrakenAccountId(krakenAccountId)
                 .setApiKey(apiPublicKey)
@@ -245,15 +273,46 @@ public class KrakenAccountServiceIntegrationTest {
 
     }
 
+    private void mockAPIMethod(
+            @SuppressWarnings("rawtypes") Map<KrakenApiMethod, ? extends Result> methods) {
+        BotMain.httpApiClientFactory = mock(HttpApiClientFactory.class);
+        methods.forEach((method,result) ->
+        {
+            try {
+                @SuppressWarnings("rawtypes") HttpApiClient mockClient = mock(HttpApiClient.class);
+                //noinspection unchecked
+                when(BotMain.httpApiClientFactory.getHttpApiClient(null, null, method))
+                        .thenReturn(mockClient);
+                //noinspection unchecked
+                when(mockClient.callPrivate(KrakenAPIClient.BASE_URL, method, result.getClass())).thenReturn(result);
+
+            } catch (KrakenApiException e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
     @Test
-    public void testUpdateBalance() throws ExecutionException, InterruptedException {
+    public void testUpdateBalance() throws ExecutionException, InterruptedException, IOException {
+
+        // mocks
+        mockAPIMethod(
+                ImmutableMap.of(
+                KrakenApiMethod.ACCOUNT_BALANCE
+                , new ObjectMapper().readValue(
+                        StreamUtils.getResourceAsString(this.getClass(), "json/account_balance.mock.json")
+                        , AccountBalanceResult.class),
+                KrakenApiMethod.TRADE_BALANCE
+                , new ObjectMapper().readValue(
+                        StreamUtils.getResourceAsString(this.getClass(), "json/trade_balance.mock.json")
+                        , TradeBalanceResult.class)));
 
         String botAccountId = UUID.randomUUID().toString();
         String krakenAccountId = UUID.randomUUID().toString();
         String email = "me@you.com";
 
-        String apiPublicKey ="";
-        String apiSecretKey = "";
+        String apiPublicKey = UUID.randomUUID().toString();
+        String apiSecretKey = UUID.randomUUID().toString();
         createAssociatedKrakenAccountWithAPIKeys(botAccountId, krakenAccountId, email, apiPublicKey, apiSecretKey);
 
         krakenAccountServiceClient.assignAPIKeys(AssignAPIKeysCommand.newBuilder()
@@ -270,7 +329,15 @@ public class KrakenAccountServiceIntegrationTest {
                 .toCompletableFuture().get();
 
         // then
-        Assert.assertNotSame("", updateBalanceResponse.getCostBasis());
+        Assert.assertEquals("0.0000", updateBalanceResponse.getCostBasis());
+        Assert.assertEquals("230.6645", updateBalanceResponse.getEquity());
+        Assert.assertEquals("260.1645", updateBalanceResponse.getEquivalentBalance());
+        Assert.assertEquals("0.0000", updateBalanceResponse.getFloatingValuation());
+        Assert.assertEquals("230.6645", updateBalanceResponse.getFreeMargin());
+        Assert.assertEquals("0.0000", updateBalanceResponse.getMarginAmount());
+        Assert.assertEquals("", updateBalanceResponse.getMarginLevel());
+        Assert.assertEquals("230.6645", updateBalanceResponse.getTradeBalance());
+        Assert.assertEquals("0.0000", updateBalanceResponse.getUnrealizedNetProfitLoss());
 
     }
 

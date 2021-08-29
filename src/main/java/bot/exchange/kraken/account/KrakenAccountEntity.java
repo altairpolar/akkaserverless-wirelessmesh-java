@@ -2,7 +2,7 @@ package bot.exchange.kraken.account;
 
 
 import akka.japi.Option;
-import bot.exchange.kraken.access.typed.HttpApiClientFactory;
+import bot.BotMain;
 import bot.exchange.kraken.access.typed.KrakenAPIClient;
 import bot.exchange.kraken.access.typed.KrakenApiException;
 import bot.exchange.kraken.access.typed.result.AccountBalanceResult;
@@ -38,8 +38,7 @@ import java.util.stream.Collectors;
 @EventSourcedEntity(entityType = "exchange-kraken-account")
 public class KrakenAccountEntity implements BotDomainEntity<KrakenAccountState> {
 
-    HttpApiClientFactory httpApiClientFactory = new HttpApiClientFactory();
-    KrakenAPIClient client = new KrakenAPIClient("", "", httpApiClientFactory);
+    KrakenAPIClient client = new KrakenAPIClient(BotMain.httpApiClientFactory);
 
     public static final String BOT_AND_KRAKEN_IDS_CANNOT_BE_EMPTY = "Bot and Kraken Account Ids cannot be empty";
     public static final String KRAKEN_ACCOUNT_IS_ALREADY_ASSOCIATED = "Bot Account is already associated with this Kraken Account";
@@ -188,7 +187,6 @@ public class KrakenAccountEntity implements BotDomainEntity<KrakenAccountState> 
             return UpdateBalanceResponse.getDefaultInstance();
         }
 
-
         KrakenBalanceUpdated event = KrakenBalanceUpdated.newBuilder()
                 .addAllAssets(accountBalanceResult.getResult().entrySet().stream().map(e ->
                         KrakenBalanceUpdatedForAsset.newBuilder()
@@ -267,7 +265,9 @@ public class KrakenAccountEntity implements BotDomainEntity<KrakenAccountState> 
         this.apiSecret = krakenAPIKeysAssigned.getApiSecret();
 
         // Update client with a new one, with the specific keys.
-        client = new KrakenAPIClient(apiKey, apiSecret, httpApiClientFactory);
+
+        KrakenAPIClient client = new KrakenAPIClient(this.apiKey, this.apiSecret, BotMain.httpApiClientFactory);
+
     }
 
     /**

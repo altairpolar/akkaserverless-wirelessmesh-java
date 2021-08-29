@@ -547,7 +547,7 @@ public class KrakenAPIClientTest {
         AccountBalanceResult mockResult = new ObjectMapper().readValue(jsonResult, AccountBalanceResult.class);
 
         // When
-        when(mockClientFactory.getHttpApiClient("apiKey", "apiSecret", KrakenApiMethod.ACCOUNT_BALANCE)).thenReturn(mockClient);
+        when(mockClientFactory.getHttpApiClient(null, null, KrakenApiMethod.ACCOUNT_BALANCE)).thenReturn(mockClient);
         when(mockClient.callPrivate(KrakenAPIClient.BASE_URL, KrakenApiMethod.ACCOUNT_BALANCE, AccountBalanceResult.class)).thenReturn(mockResult);
 
         KrakenAPIClient client = new KrakenAPIClient("apiKey", "apiSecret", mockClientFactory);
