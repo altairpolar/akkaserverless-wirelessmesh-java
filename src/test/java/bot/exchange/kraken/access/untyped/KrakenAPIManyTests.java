@@ -1,25 +1,6 @@
 package bot.exchange.kraken.access.untyped;
 
-import bot.account.BotAccountAPI.RegisterAccountCommand;
-import bot.account.BotAccountDomain.BotAccountRegistered;
-import bot.account.BotAccountEntity;
-import bot.exchange.kraken.account.KrakenAccountAPI;
-import bot.exchange.kraken.account.KrakenAccountDomain.KrakenAccountAssociated;
-import bot.exchange.kraken.account.KrakenAccountDomain.KrakenAccountDissociated;
-import bot.exchange.kraken.account.KrakenAccountEntity;
-import com.akkaserverless.javasdk.eventsourcedentity.CommandContext;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.mockito.Mockito;
-
-import java.io.IOException;
-import java.security.InvalidKeyException;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
 
 public class KrakenAPIManyTests {
 
