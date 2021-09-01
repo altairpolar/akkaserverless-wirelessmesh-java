@@ -1,0 +1,157 @@
+syntax = "proto3";
+
+package bot.exchange.kraken.account;
+
+import "google/protobuf/empty.proto";
+import "google/api/annotations.proto";
+import "akkaserverless/annotations.proto";
+
+option java_outer_classname = "KrakenPositionAPI";
+
+
+// COMMANDS
+message CreateLongPositionCommand {
+    string position_id = 1 [(akkaserverless.field).entity_key = true];
+    string kraken_account_id = 2;
+}
+
+message GetPositionCommand {
+    string position_id = 1 [(akkaserverless.field).entity_key = true];
+}
+
+message GetPositionHistoryCommand {
+    string position_id = 1 [(akkaserverless.field).entity_key = true];
+}
+
+message SplitPositionCommand {
+    string position_id = 1 [(akkaserverless.field).entity_key = true];
+}
+
+message MergePositionCommand {
+    string position_id = 1 [(akkaserverless.field).entity_key = true];
+}
+
+message HoldPositionCommand {
+    string position_id = 1 [(akkaserverless.field).entity_key = true];
+}
+
+message ReleasePositionCommand {
+    string position_id = 1 [(akkaserverless.field).entity_key = true];
+}
+
+message DCAPositionCommand {
+    string position_id = 1 [(akkaserverless.field).entity_key = true];
+}
+
+message ShortPositionCommand {
+    string position_id = 1 [(akkaserverless.field).entity_key = true];
+}
+
+message CancelPositionCommand {
+    string position_id = 1 [(akkaserverless.field).entity_key = true];
+}
+
+message ClosePositionCommand {
+    string position_id = 1 [(akkaserverless.field).entity_key = true];
+}
+
+// VALUE TYPES
+message GetPositionResponse {
+    string date_time_opened = 1;
+    repeated HistoryEntry entries = 2;
+}
+
+message HistoryEntry {
+    string at_date_time = 1;
+    string operation = 2;
+    string context = 3;
+    string value_before = 4;
+    string value_after = 5;
+}
+
+// SERVICE
+
+/**
+* The service definition.
+* Note: GRPC is the default mechanism, but the google.api.http option gives us http capability for free.
+**/
+service KrakenPositionService {
+
+    rpc CreateLongPosition(CreateLongPositionCommand) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/exchange/kraken/positions/create"
+            body: "*"
+        };
+    }
+
+    rpc GetPosition(GetPositionCommand) returns (GetPositionResponse) {
+        option (google.api.http) = {
+            get: "/exchange/kraken/positions/{position_id}"
+            additional_bindings: {
+                get: "/exchange/kraken/positions/{position_id}/history"
+                response_body: "entries"
+            } };
+    }
+
+    rpc SplitPosition(SplitPositionCommand) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/exchange/kraken/positions/{position_id}/split"
+            body: "*"
+        };
+    }
+
+
+    rpc MergePosition(MergePositionCommand) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/exchange/kraken/positions/{position_id}/merge"
+            body: "*"
+        };
+    }
+
+
+    rpc HoldPosition(HoldPositionCommand) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/exchange/kraken/positions/{position_id}/hold"
+            body: "*"
+        };
+    }
+
+
+    rpc ReleasePosition(ReleasePositionCommand) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/exchange/kraken/positions/{position_id}/release"
+            body: "*"
+        };
+    }
+
+
+    rpc DCAPosition(DCAPositionCommand) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/exchange/kraken/positions/{position_id}/dca"
+            body: "*"
+        };
+    }
+
+    rpc ShortPosition(ShortPositionCommand) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/exchange/kraken/positions/{position_id}/short"
+            body: "*"
+        };
+    }
+
+    rpc CancelPosition(CancelPositionCommand) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            delete: "/exchange/kraken/positions/{position_id}/cancel"
+            body: "*"
+        };
+    }
+
+
+    rpc ClosePosition(ClosePositionCommand) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/exchange/kraken/positions/{position_id}/close"
+            body: "*"
+        };
+    }
+
+}

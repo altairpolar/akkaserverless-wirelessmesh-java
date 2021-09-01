@@ -12,7 +12,11 @@ option java_outer_classname = "KrakenAccountAPI";
 // COMMANDS
 message AssociateAccountCommand {
     string kraken_account_id = 1 [(akkaserverless.field).entity_key = true];
-    string bot_account_id = 2 [(akkaserverless.field).entity_key = true];
+    string bot_account_id = 2;
+}
+
+message GetAccountCommand {
+    string kraken_account_id = 1 [(akkaserverless.field).entity_key = true];
 }
 
 message DissociateAccountCommand {
@@ -57,6 +61,11 @@ message UpdateBalanceResponseForAsset {
     string amount = 2;
 }
 
+// VALUE TYPES
+message GetAccountResponse {
+    string id = 1;
+    string email = 2;
+}
 
 // SERVICE
 
@@ -70,6 +79,12 @@ service KrakenAccountService {
         option (google.api.http) = {
             post: "/exchange/kraken/account/associate"
             body: "*"
+        };
+    }
+
+    rpc GetAccount(GetAccountCommand) returns (GetAccountResponse) {
+        option (google.api.http) = {
+            get: "/exchange/kraken/account/get"
         };
     }
 

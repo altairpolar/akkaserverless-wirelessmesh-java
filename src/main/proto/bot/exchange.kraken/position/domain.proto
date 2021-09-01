@@ -1,0 +1,76 @@
+syntax = "proto3";
+
+package bot.exchange.kraken.account;
+
+option java_outer_classname = "KrakenPositionDomain";
+
+// VALUE TYPES
+
+// EVENTS
+
+message KrakenPositionCreated {
+  string krakenPositionId = 1;
+  string krakenAccountId = 2;
+}
+
+message KrakenLongPositionCancelled {
+  string krakenPositionId = 1;
+}
+
+message KrakenShortPositionCancelled {
+  string krakenPositionId = 1;
+}
+
+// Long Positions
+message KrakenLongPositionOpened {
+  string krakenPositionId = 1;
+  string krakenAccountId = 2;
+}
+
+message KrakenLongPositionHeld {
+  string krakenPositionId = 1;
+}
+
+message KrakenLongPositionReleased {
+  string krakenPositionId = 1;
+}
+
+message KrakenLongPositionDCAed {
+  string krakenPositionId = 1;
+}
+
+message KrakenLongPositionMerged {
+  string krakenPositionId = 1;
+}
+
+message KrakenLongPositionSplit {
+  string krakenPositionId = 1;
+}
+
+message KrakenLongPositionClosed {
+  string krakenPositionId = 1;
+}
+
+message KrakenLongPositionShorted {
+  string krakenPositionId = 1;
+}
+
+// Short Positions
+message KrakenShortPositionOpened {
+  string krakenPositionId = 1;
+  string krakenAccountId = 2;
+}
+
+message KrakenShortPositionHeld {
+  string krakenPositionId = 1;
+}
+
+message KrakenShortPositionReleased {
+  string krakenPositionId = 1;
+}
+
+message KrakenShortPositionClosed {
+  string krakenPositionId = 1;
+}
+
+
