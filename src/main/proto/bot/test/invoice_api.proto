@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package com.invoice;
+
+option java_outer_classname = "InvoiceAPI";
+
+import "google/api/annotations.proto";
+import "akkaserverless/annotations.proto";
+
+message CreateInvoiceCommand {
+    string invoice_id = 1 [(akkaserverless.field).entity_key = true];
+    string customer_id = 2;
+    string name = 3;
+}
+
+message GetInvoiceResponse {
+    string name = 1;
+}
+
+service InvoiceService {
+
+    rpc CreateInvoice(CreateInvoiceCommand) returns (GetInvoiceResponse) {
+        option (google.api.http) = {
+            post: "/invoices/create"
+            body: "*"
+        };
+    }
+
+}
