@@ -17,7 +17,6 @@ import bot.exchange.kraken.account.KrakenAccountAPI.*;
 import com.akkaserverless.javasdk.testkit.junit.AkkaServerlessTestkitResource;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Ignore;
@@ -38,6 +37,8 @@ public class KrakenAccountServiceIntegrationTest {
     private final BotAccountServiceClient botAccountServiceClient;
     private final KrakenAccountServiceClient krakenAccountServiceClient;
 
+    private KrakenAccountIntegrationHelper krakenAccountIntegrationHelper;
+
     @ClassRule
     public static final AkkaServerlessTestkitResource testkit = new AkkaServerlessTestkitResource(
             BotAkkaServerless.botAkkaServerless);
@@ -48,6 +49,8 @@ public class KrakenAccountServiceIntegrationTest {
     public KrakenAccountServiceIntegrationTest() {
         botAccountServiceClient = BotAccountServiceClient.create(testkit.getGrpcClientSettings(), testkit.getActorSystem());
         krakenAccountServiceClient = KrakenAccountServiceClient.create(testkit.getGrpcClientSettings(), testkit.getActorSystem());
+
+        krakenAccountIntegrationHelper = new KrakenAccountIntegrationHelper(botAccountServiceClient, krakenAccountServiceClient);
     }
 
     @Test
@@ -59,7 +62,7 @@ public class KrakenAccountServiceIntegrationTest {
         String email = "me@you.com";
 
         // when
-        createAssociatedKrakenAccount(botAccountId, krakenAccountId, email);
+        krakenAccountIntegrationHelper.createAssociatedKrakenAccount(botAccountId, krakenAccountId, email);
 
         // then
 
@@ -146,10 +149,8 @@ public class KrakenAccountServiceIntegrationTest {
     public void assignAPIKeys() throws ExecutionException, InterruptedException {
 
         // given
-        String botAccountId = UUID.randomUUID().toString();
         String krakenAccountId = UUID.randomUUID().toString();
-        String email = "me@you.com";
-        createAssociatedKrakenAccount(botAccountId, krakenAccountId, email);
+        krakenAccountIntegrationHelper.createAssociatedKrakenAccount(krakenAccountId);
 
         String apiKey = UUID.randomUUID().toString();
         String apiSecret = UUID.randomUUID().toString();
@@ -173,10 +174,8 @@ public class KrakenAccountServiceIntegrationTest {
     public void assignAPIKeys_failsIfAPIKeyIsShorterThan10() throws ExecutionException, InterruptedException {
 
         // given
-        String botAccountId = UUID.randomUUID().toString();
         String krakenAccountId = UUID.randomUUID().toString();
-        String email = "me@you.com";
-        createAssociatedKrakenAccount(botAccountId, krakenAccountId, email);
+        krakenAccountIntegrationHelper.createAssociatedKrakenAccount(krakenAccountId);
 
         String apiKey = "123456789";
         String apiSecret = UUID.randomUUID().toString();
@@ -202,10 +201,8 @@ public class KrakenAccountServiceIntegrationTest {
     public void assignAPIKeys_failsIfAPISecretIsShorterThan10() throws ExecutionException, InterruptedException {
 
         // given
-        String botAccountId = UUID.randomUUID().toString();
         String krakenAccountId = UUID.randomUUID().toString();
-        String email = "me@you.com";
-        createAssociatedKrakenAccount(botAccountId, krakenAccountId, email);
+        krakenAccountIntegrationHelper.createAssociatedKrakenAccount(krakenAccountId);
 
         String apiKey = UUID.randomUUID().toString();
         String apiSecret = "123456789";
@@ -244,10 +241,8 @@ public class KrakenAccountServiceIntegrationTest {
                                 , AccountBalanceResult.class)));
 
         // given
-        String botAccountId = UUID.randomUUID().toString();
         String krakenAccountId = UUID.randomUUID().toString();
-        String email = "me@you.com";
-        createAssociatedKrakenAccount(botAccountId, krakenAccountId, email);
+        krakenAccountIntegrationHelper.createAssociatedKrakenAccount(krakenAccountId);
 
         String apiPublicKey = UUID.randomUUID().toString();
         String apiSecretKey = UUID.randomUUID().toString();
@@ -307,20 +302,8 @@ public class KrakenAccountServiceIntegrationTest {
                         StreamUtils.getResourceAsString(this.getClass(), "json/trade_balance.mock.json")
                         , TradeBalanceResult.class)));
 
-        String botAccountId = UUID.randomUUID().toString();
         String krakenAccountId = UUID.randomUUID().toString();
-        String email = "me@you.com";
-
-        String apiPublicKey = UUID.randomUUID().toString();
-        String apiSecretKey = UUID.randomUUID().toString();
-        createAssociatedKrakenAccountWithAPIKeys(botAccountId, krakenAccountId, email, apiPublicKey, apiSecretKey);
-
-        krakenAccountServiceClient.assignAPIKeys(AssignAPIKeysCommand.newBuilder()
-                .setKrakenAccountId(krakenAccountId)
-                .setApiKey(apiPublicKey)
-                .setApiSecret(apiSecretKey)
-                .build())
-                .toCompletableFuture().get();
+        krakenAccountIntegrationHelper.createAssociatedKrakenAccountWithAPIKeys(krakenAccountId);
 
         // when
         UpdateBalanceResponse updateBalanceResponse = krakenAccountServiceClient.updateBalance(UpdateBalanceCommand.newBuilder()
@@ -340,43 +323,4 @@ public class KrakenAccountServiceIntegrationTest {
         Assert.assertEquals("0.0000", updateBalanceResponse.getUnrealizedNetProfitLoss());
 
     }
-
-    private void createAssociatedKrakenAccountWithAPIKeys(String botAccountId, String krakenAccountId, String email, String apiKey, String apiSecret) throws InterruptedException, ExecutionException {
-        botAccountServiceClient.registerAccount(BotAccountAPI.RegisterAccountCommand.newBuilder()
-                .setId(botAccountId)
-                .setEmail(email)
-                .build())
-                .toCompletableFuture().get();
-
-        krakenAccountServiceClient.associateAccount(KrakenAccountAPI.AssociateAccountCommand.newBuilder()
-                .setBotAccountId(botAccountId)
-                .setKrakenAccountId(krakenAccountId)
-                .build())
-                .toCompletableFuture().get();
-
-        krakenAccountServiceClient.assignAPIKeys(KrakenAccountAPI.AssignAPIKeysCommand.newBuilder()
-                .setKrakenAccountId(krakenAccountId)
-                .setApiKey(apiKey)
-                .setApiSecret(apiSecret)
-                .build())
-                .toCompletableFuture().get();
-    }
-
-
-    private void createAssociatedKrakenAccount(String botAccountId, String krakenAccountId, String email) throws InterruptedException, ExecutionException {
-        botAccountServiceClient.registerAccount(BotAccountAPI.RegisterAccountCommand.newBuilder()
-                .setId(botAccountId)
-                .setEmail(email)
-                .build())
-                .toCompletableFuture().get();
-
-        krakenAccountServiceClient.associateAccount(AssociateAccountCommand.newBuilder()
-                .setBotAccountId(botAccountId)
-                .setKrakenAccountId(krakenAccountId)
-                .build())
-                .toCompletableFuture().get();
-    }
-
-
-
 }
