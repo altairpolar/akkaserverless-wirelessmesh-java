@@ -5,10 +5,6 @@ package com.customer;
 option java_outer_classname = "InvoiceDomain";
 
 
-import "google/protobuf/empty.proto";
-import "google/api/annotations.proto";
-import "akkaserverless/annotations.proto";
-
 message InvoiceCreated {
     string invoice_id = 1;
     string customer_id = 2;
