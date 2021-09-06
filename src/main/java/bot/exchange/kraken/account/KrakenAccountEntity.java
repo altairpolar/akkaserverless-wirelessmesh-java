@@ -2,13 +2,8 @@ package bot.exchange.kraken.account;
 
 
 import akka.japi.Option;
-import bot.BotMain;
-import bot.exchange.kraken.access.typed.KrakenAPIClient;
-import bot.exchange.kraken.access.typed.KrakenApiException;
-import bot.exchange.kraken.access.typed.result.AccountBalanceResult;
-import bot.exchange.kraken.access.typed.result.TradeBalanceResult;
-import  bot.exchange.kraken.account.KrakenAccountDomain.*;
-import  bot.exchange.kraken.account.KrakenAccountAPI.*;
+import bot.exchange.kraken.account.KrakenAccountDomain.*;
+import bot.exchange.kraken.account.KrakenAccountAPI.*;
 import com.akkaserverless.javasdk.EntityId;
 import com.akkaserverless.javasdk.eventsourcedentity.CommandContext;
 import com.akkaserverless.javasdk.eventsourcedentity.CommandHandler;
@@ -18,10 +13,23 @@ import com.google.common.collect.Sets;
 import com.google.protobuf.Empty;
 import common.domain.BotDomainEntity;
 import common.type.DecimalTransformer;
+import org.knowm.xchange.Exchange;
+import org.knowm.xchange.ExchangeFactory;
+import org.knowm.xchange.ExchangeSpecification;
+import org.knowm.xchange.exceptions.ExchangeException;
+import org.knowm.xchange.kraken.KrakenExchange;
+import org.knowm.xchange.kraken.dto.account.KrakenTradeBalanceInfo;
+import org.knowm.xchange.kraken.service.KrakenAccountServiceRaw;
+import org.knowm.xchange.service.account.AccountService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 /**
@@ -38,13 +46,24 @@ import java.util.stream.Collectors;
 @EventSourcedEntity(entityType = "exchange-kraken-account")
 public class KrakenAccountEntity implements BotDomainEntity<KrakenAccountState> {
 
-    KrakenAPIClient client = new KrakenAPIClient(BotMain.httpApiClientFactory);
+    private static final Logger LOGGER = LoggerFactory.getLogger(KrakenAccountEntity.class);
 
+    // SERVICES
+
+    private Exchange exchange = ExchangeFactory.INSTANCE.createExchange(KrakenExchange.class);
+    KrakenAccountServiceRaw krakenAccountServiceRaw = new KrakenAccountServiceRaw(exchange);
+    AccountService accountService = exchange.getAccountService();
+
+    // MESSAGES
+    private static final String ERROR_INVOKING_API = "There was an error invoking the Exchange API. Please, test your keys or contact administrator";
+    public static final String ERROR_OBTAINING_ACCOUNT_INFO_WITH_PROVIDED_KEYS = "Error obtaining account info with the API Keys provided";
     public static final String BOT_AND_KRAKEN_IDS_CANNOT_BE_EMPTY = "Bot and Kraken Account Ids cannot be empty";
     public static final String KRAKEN_ACCOUNT_IS_ALREADY_ASSOCIATED = "Bot Account is already associated with this Kraken Account";
     public static final String KRAKEN_ACCOUNT_IS_ALREADY_DISSOCIATED = "Bot Account is already dissociated from this Kraken Account";
     public static final String KRAKEN_API_KEY_SHORTEN_THAN_10 = "API Key must contain at least 10 characters";
     public static final String KRAKEN_API_SECRET_SHORTEN_THAN_10 = "API Secret must contain at least 10 characters";
+
+    // STATE
 
     @SuppressWarnings({"FieldCanBeLocal", "unused", "FieldMayBeFinal"})
     private String krakenAccountId;
@@ -59,15 +78,31 @@ public class KrakenAccountEntity implements BotDomainEntity<KrakenAccountState> 
 
     private final Set<KrakenAccountStateBalanceForAsset> assets = Sets.newHashSet();
 
+    // Cost basis of all open positions
     private Option<BigDecimal> costBasis;
+
+    // Trade balance + unrealized net profit/loss
     private Option<BigDecimal> equity;
     private Option<BigDecimal> equivalentBalance;
+
+    // Initial margin amount of all open positions
     private Option<BigDecimal> marginAmount;
+
+    // Equity - initial margin (max. margin available when opening new positions)
     private Option<BigDecimal> freeMargin;
+
+    // Equity vs initial margin as a percentage (equity / initial margin) * 100
     private Option<BigDecimal> marginLevel;
+
+    // Unrealized net profit/loss of all open positions
     private Option<BigDecimal> unrealizedNetProfitLoss;
+
+    // Combined balance for all traded pairs.
     private Option<BigDecimal> tradeBalance;
+
+    // Floating valuation of all open positions
     private Option<BigDecimal> floatingValuation;
+
     /**
      * Constructor.
      *
@@ -84,7 +119,7 @@ public class KrakenAccountEntity implements BotDomainEntity<KrakenAccountState> 
      * This is the command handler for adding an account as defined in protobuf.
      *
      * @param associateAccountCommand the command message from protobuf
-     * @param ctx                    the application context
+     * @param ctx                     the application context
      * @return Empty (unused)
      */
     @SuppressWarnings({"ThrowableNotThrown", "UnusedReturnValue"})
@@ -93,8 +128,7 @@ public class KrakenAccountEntity implements BotDomainEntity<KrakenAccountState> 
         if (associateAccountCommand.getBotAccountId().equals("")
                 || associateAccountCommand.getKrakenAccountId().equals("")) {
             ctx.fail(BOT_AND_KRAKEN_IDS_CANNOT_BE_EMPTY);
-        } else
-        if (isAssociated) {
+        } else if (isAssociated) {
             ctx.fail(KRAKEN_ACCOUNT_IS_ALREADY_ASSOCIATED);
         } else {
             KrakenAccountAssociated event = KrakenAccountAssociated.newBuilder()
@@ -145,24 +179,29 @@ public class KrakenAccountEntity implements BotDomainEntity<KrakenAccountState> 
     }
 
     @CommandHandler
-    public TestAPIKeysResponse testAPIKeys(@SuppressWarnings("unused") TestAPIKeysCommand testAPIKeysCommand, @SuppressWarnings("unused") CommandContext ctx) {
+    public TestAPIKeysResponse testAPIKeys(@SuppressWarnings("unused") TestAPIKeysCommand testAPIKeysCommand, @SuppressWarnings("unused") CommandContext ctx) throws IOException {
 
+        boolean success;
         // TYPED API
         try {
-            // Execute one call to verify it can successfully connect.
-            client.getAccountBalance();
-        } catch (KrakenApiException e) {
+            success = exchange.getAccountService().getAccountInfo() != null;
+        } catch (ExchangeException e) {
             return TestAPIKeysResponse.newBuilder()
                     .setSuccess(false)
                     .setErrorMessage(e.getMessage())
                     .build();
         }
-
-        return TestAPIKeysResponse.newBuilder()
-                .setSuccess(true)
-                .setErrorMessage("")
-                .build();
-
+        if (!success) {
+            return TestAPIKeysResponse.newBuilder()
+                    .setSuccess(false)
+                    .setErrorMessage(ERROR_OBTAINING_ACCOUNT_INFO_WITH_PROVIDED_KEYS)
+                    .build();
+        } else {
+            return TestAPIKeysResponse.newBuilder()
+                    .setSuccess(true)
+                    .setErrorMessage("")
+                    .build();
+        }
     }
 
 
@@ -170,63 +209,85 @@ public class KrakenAccountEntity implements BotDomainEntity<KrakenAccountState> 
      * This is the command handler for adding an account as defined in protobuf.
      *
      * @param updateBalanceCommand the command message from protobuf
-     * @param ctx                    the application context
-     * @return Empty (unused)
+     * @param ctx                  the application context
+     * @return UpdateBalanceResponse the balance, just updated on the exchange
      */
     @SuppressWarnings("ThrowableNotThrown")
     @CommandHandler
     public UpdateBalanceResponse updateBalance(@SuppressWarnings("unused") UpdateBalanceCommand updateBalanceCommand, CommandContext ctx) {
 
-        AccountBalanceResult accountBalanceResult;
-        TradeBalanceResult tradeBalanceResult;
+        // Do not fail fast. Tries to obtain any information available (there are 2 external API calls).
+
+        // Each external API call is invoked asynchronously.
+
+        // See: https://www.callicoder.com/java-8-completablefuture-tutorial/
+        CompletableFuture<KrakenTradeBalanceInfo> infoCompletableFuture = CompletableFuture.supplyAsync(() -> {
+            try {
+                return krakenAccountServiceRaw.getKrakenTradeBalance();
+            } catch (IOException e) {
+                LOGGER.debug("Error obtaining Kraken Balance:  {}", e.getMessage());
+                return new KrakenTradeBalanceInfo(null, null, null, null, null, null, null, null);
+            }
+        }).exceptionally((e) -> {
+            e.getCause();
+            return new KrakenTradeBalanceInfo(null, null, null, null, null, null, null, null);
+        });
+
+        CompletableFuture<Set<KrakenBalanceUpdatedForAsset>> assetsBalancesFuture = CompletableFuture.supplyAsync(() -> {
+            Set<KrakenBalanceUpdatedForAsset> assets = Sets.newHashSet();
+            try {
+                assets.addAll(accountService.getAccountInfo().getWallet().getBalances().entrySet().stream().map(
+                        e -> KrakenBalanceUpdatedForAsset.newBuilder()
+                                .setAsset(e.getKey().getCurrencyCode())
+                                .setAmount(e.getValue().getTotal().toPlainString())
+                                .build())
+                        .collect(Collectors.toSet()));
+            } catch (IOException e) {
+                LOGGER.debug("Error obtaining Kraken Account Info:  {}", e.getMessage());
+            }
+            return assets;
+        });
+
+        UpdateBalanceResponse updateBalanceResponse = UpdateBalanceResponse.getDefaultInstance();
         try {
-            accountBalanceResult = client.getAccountBalance();
-            tradeBalanceResult = client.getTradeBalance();
-        } catch (KrakenApiException e) {
-            ctx.fail(e.getMessage());
-            return UpdateBalanceResponse.getDefaultInstance();
+            updateBalanceResponse = infoCompletableFuture.thenCompose(info -> assetsBalancesFuture.thenApply(assets -> {
+                KrakenBalanceUpdated event = KrakenBalanceUpdated.newBuilder()
+                        .addAllAssets(assets)
+                        .setCostBasis(DecimalTransformer.safeConvertToString(Option.some(info.getCostBasis())))
+                        .setEquity(DecimalTransformer.safeConvertToString(Option.some(info.getEquity())))
+
+                        // Not available on Crypto library.
+                        //.setEquivalentBalance(DecimalTransformer.safeConvertToString(Option.some(i.get)))
+                        .setMarginAmount(DecimalTransformer.safeConvertToString(Option.some(info.getMargin())))
+                        .setFreeMargin(DecimalTransformer.safeConvertToString(Option.some(info.getFreeMargin())))
+                        .setMarginLevel(DecimalTransformer.safeConvertToString(Option.some(info.getMarginLevel())))
+                        .setUnrealizedNetProfitLoss(DecimalTransformer.safeConvertToString(Option.some(info.getUnrealizedGainsLosses())))
+                        .setTradeBalance(DecimalTransformer.safeConvertToString(Option.some(info.getTradeBalance())))
+                        .setFloatingValuation(DecimalTransformer.safeConvertToString(Option.some(info.getFloatingValuation())))
+                        .build();
+
+                return UpdateBalanceResponse.newBuilder()
+                        .addAllAssets(event.getAssetsList().stream().map(eventAsset ->
+                                UpdateBalanceResponseForAsset.newBuilder()
+                                        .setAsset(eventAsset.getAsset())
+                                        .setAmount(eventAsset.getAmount()).build())
+                                .collect(Collectors.toSet()))
+                        // Not available on Crypto library.
+                        //.setEquivalentBalance(DecimalTransformer.safeConvertToString(Option.some(krakenTradeBalanceInfo.get)))
+                        .setMarginAmount(event.getMarginAmount())
+                        .setFreeMargin(event.getFreeMargin())
+                        .setMarginLevel(event.getMarginLevel())
+                        .setUnrealizedNetProfitLoss(event.getUnrealizedNetProfitLoss())
+                        .setTradeBalance(event.getTradeBalance())
+                        .setFloatingValuation(event.getFloatingValuation())
+                        .build();
+            })).get();
+        } catch (InterruptedException | ExecutionException e) {
+            LOGGER.debug("Error updating balance: {}", e.getMessage());
+            ctx.fail(ERROR_INVOKING_API);
         }
-
-        KrakenBalanceUpdated event = KrakenBalanceUpdated.newBuilder()
-                .addAllAssets(accountBalanceResult.getResult().entrySet().stream().map(e ->
-                        KrakenBalanceUpdatedForAsset.newBuilder()
-                                .setAsset(e.getKey())
-                                .setAmount(e.getValue().toPlainString())
-                                .build())
-                        .collect(Collectors.toSet()))
-                .setCostBasis(DecimalTransformer.safeConvertToString(Option.some(tradeBalanceResult.getResult().costBasis)))
-                .setEquity(DecimalTransformer.safeConvertToString(Option.some(tradeBalanceResult.getResult().equity)))
-                .setEquivalentBalance(DecimalTransformer.safeConvertToString(Option.some(tradeBalanceResult.getResult().equivalentBalance)))
-                .setMarginAmount(DecimalTransformer.safeConvertToString(Option.some(tradeBalanceResult.getResult().marginAmount)))
-                .setFreeMargin(DecimalTransformer.safeConvertToString(Option.some(tradeBalanceResult.getResult().freeMargin)))
-                .setMarginLevel(DecimalTransformer.safeConvertToString(Option.some(tradeBalanceResult.getResult().marginLevel)))
-                .setUnrealizedNetProfitLoss(DecimalTransformer.safeConvertToString(Option.some(tradeBalanceResult.getResult().unrealizedNetProfitLoss)))
-                .setTradeBalance(DecimalTransformer.safeConvertToString(Option.some(tradeBalanceResult.getResult().tradeBalance)))
-                .setFloatingValuation(DecimalTransformer.safeConvertToString(Option.some(tradeBalanceResult.getResult().floatingValuation)))
-                .build();
-
-        ctx.emit(event);
-
-        return UpdateBalanceResponse.newBuilder()
-                .addAllAssets(accountBalanceResult.getResult().entrySet().stream().map(e ->
-                        UpdateBalanceResponseForAsset.newBuilder()
-                                .setAsset(e.getKey())
-                                .setAmount(e.getValue().toPlainString())
-                                .build())
-                        .collect(Collectors.toSet()))
-                .setCostBasis(DecimalTransformer.safeConvertToString(Option.some(tradeBalanceResult.getResult().costBasis)))
-                .setEquity(DecimalTransformer.safeConvertToString(Option.some(tradeBalanceResult.getResult().equity)))
-                .setEquivalentBalance(DecimalTransformer.safeConvertToString(Option.some(tradeBalanceResult.getResult().equivalentBalance)))
-                .setMarginAmount(DecimalTransformer.safeConvertToString(Option.some(tradeBalanceResult.getResult().marginAmount)))
-                .setFreeMargin(DecimalTransformer.safeConvertToString(Option.some(tradeBalanceResult.getResult().freeMargin)))
-                .setMarginLevel(DecimalTransformer.safeConvertToString(Option.some(tradeBalanceResult.getResult().marginLevel)))
-                .setUnrealizedNetProfitLoss(DecimalTransformer.safeConvertToString(Option.some(tradeBalanceResult.getResult().unrealizedNetProfitLoss)))
-                .setTradeBalance(DecimalTransformer.safeConvertToString(Option.some(tradeBalanceResult.getResult().tradeBalance)))
-                .setFloatingValuation(DecimalTransformer.safeConvertToString(Option.some(tradeBalanceResult.getResult().floatingValuation)))
-                .build();
-
+        return updateBalanceResponse;
     }
-
 
     // EVENTS
 
@@ -265,9 +326,11 @@ public class KrakenAccountEntity implements BotDomainEntity<KrakenAccountState> 
         this.apiSecret = krakenAPIKeysAssigned.getApiSecret();
 
         // Update client with a new one, with the specific keys.
-
-        KrakenAPIClient client = new KrakenAPIClient(this.apiKey, this.apiSecret, BotMain.httpApiClientFactory);
-
+        ExchangeSpecification krakenExchangeSpecification = new KrakenExchange().getDefaultExchangeSpecification();
+        krakenExchangeSpecification.setShouldLoadRemoteMetaData(false);
+        krakenExchangeSpecification.setApiKey(this.apiKey);
+        krakenExchangeSpecification.setSecretKey(this.apiSecret);
+        this.exchange.applySpecification(krakenExchangeSpecification);
     }
 
     /**

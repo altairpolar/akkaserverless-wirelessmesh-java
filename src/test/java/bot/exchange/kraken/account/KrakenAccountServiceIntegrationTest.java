@@ -4,6 +4,8 @@ import bot.BotAkkaServerless;
 import bot.BotMain;
 import bot.account.BotAccountAPI;
 import bot.account.BotAccountServiceClient;
+import bot.exchange.access.BotExchangeFactory;
+import bot.exchange.kraken.access.BotKrakenExchangeFactory;
 import bot.exchange.kraken.access.typed.HttpApiClient;
 import bot.exchange.kraken.access.typed.HttpApiClientFactory;
 import bot.exchange.kraken.access.typed.KrakenAPIClient;
@@ -17,19 +19,37 @@ import bot.exchange.kraken.account.KrakenAccountAPI.*;
 import com.akkaserverless.javasdk.testkit.junit.AkkaServerlessTestkitResource;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.knowm.xchange.Exchange;
+import org.knowm.xchange.ExchangeFactory;
+import org.knowm.xchange.ExchangeSpecification;
+import org.knowm.xchange.dto.account.AccountInfo;
+import org.knowm.xchange.dto.account.Wallet;
+import org.knowm.xchange.kraken.Kraken;
+import org.knowm.xchange.kraken.KrakenExchange;
+import org.knowm.xchange.kraken.dto.account.KrakenTradeBalanceInfo;
+import org.knowm.xchange.kraken.service.KrakenAccountServiceRaw;
+import org.knowm.xchange.kraken.service.KrakenTradeServiceRaw;
+import org.knowm.xchange.service.account.AccountService;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
+import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.when;
 
 public class KrakenAccountServiceIntegrationTest {
@@ -233,19 +253,30 @@ public class KrakenAccountServiceIntegrationTest {
     public void testAPIKeys() throws ExecutionException, InterruptedException, IOException {
 
         // mocks
-
-        mockAPIMethod(
-                ImmutableMap.of(KrakenApiMethod.ACCOUNT_BALANCE
-                        , new ObjectMapper().readValue(
-                                StreamUtils.getResourceAsString(this.getClass(), "json/account_balance.mock.json")
-                                , AccountBalanceResult.class)));
+        KrakenExchange exchange = mock(KrakenExchange.class);
+        try (MockedStatic<BotExchangeFactory> botExchangeFactoryMockedStatic = Mockito.mockStatic(BotExchangeFactory.class)) {
+            botExchangeFactoryMockedStatic.when(() -> BotExchangeFactory.createExchange(KrakenExchange.class))
+                    .thenReturn(exchange);
+        }
+        KrakenAccountServiceRaw krakenAccountServiceRaw = mock(KrakenAccountServiceRaw.class);
+        try (MockedStatic<BotKrakenExchangeFactory> botKrakenExchangeFactoryMockedStatic = Mockito.mockStatic(BotKrakenExchangeFactory.class)) {
+            botKrakenExchangeFactoryMockedStatic.when(() -> BotKrakenExchangeFactory.createKrakenAccountServiceRaw(exchange))
+                    .thenReturn(krakenAccountServiceRaw);
+        }
+        AccountService accountService = mock(AccountService.class);
+        when(exchange.getAccountService()).thenReturn(accountService);
+        Wallet wallet = new Wallet("id", "name", Sets.newHashSet(), Sets.newHashSet(), BigDecimal.valueOf(1), BigDecimal.valueOf(2));
+        when(accountService.getAccountInfo()).thenReturn(new AccountInfo(wallet));
+        KrakenTradeBalanceInfo krakenTradeBalanceInfo = new KrakenTradeBalanceInfo(
+                BigDecimal.valueOf(1), BigDecimal.valueOf(2), BigDecimal.valueOf(3), BigDecimal.valueOf(4), BigDecimal.valueOf(5), BigDecimal.valueOf(6), BigDecimal.valueOf(7), BigDecimal.valueOf(8));
+        when(krakenAccountServiceRaw.getKrakenTradeBalance()).thenReturn(krakenTradeBalanceInfo);
 
         // given
         String krakenAccountId = UUID.randomUUID().toString();
         krakenAccountIntegrationHelper.createAssociatedKrakenAccount(krakenAccountId);
 
-        String apiPublicKey = UUID.randomUUID().toString();
-        String apiSecretKey = UUID.randomUUID().toString();
+        String apiPublicKey = "dmDSFDSdskjds329dsk2393320329032";
+        String apiSecretKey = "jksfnsakfj238dslfweo85u32wljasfs";
 
         krakenAccountServiceClient.assignAPIKeys(AssignAPIKeysCommand.newBuilder()
                 .setKrakenAccountId(krakenAccountId)
